@@ -81,10 +81,12 @@ Key flags, all measured rather than assumed:
 - `-b 2048 -ub 512` — measured optimum. Larger ubatch is much worse here
   (pp2048: 111.16 at ub512, 105.71 at ub1024, 82.82 at ub2048). Do not carry
   over the APEX `ub 4096` setting; it is model-specific.
-- `--cache-reuse 256 --cache-ram 8192` — the highest-value flags for agentic
-  use. A 3,010-token prompt resent identically reprocesses 4 tokens (3,006
-  cached); a follow-up turn reprocesses 15. Prefill is paid once per
-  conversation, not once per turn.
+- `--cache-ram 8192` — the highest-value flag for agentic use. A 3,010-token
+  prompt resent identically reprocesses 4 tokens (3,006 cached); a follow-up turn
+  reprocesses 15. Prefill is paid once per conversation, not once per turn.
+  Do **not** add `--cache-reuse`: the server logs `cache_reuse is not supported
+  by this context, it will be disabled` for `deepseek4` on both backends, so it
+  is inert and only creates the illusion of a tuned setting.
 - No `--override-kv` on mainline or Vulkan. The GGUF declares
   `nextn_predict_layers = 1` but contains zero nextn tensors; mainline never
   creates `blk.42.nextn.*` so the metadata is inert. **This fork does** create
@@ -95,15 +97,38 @@ Key flags, all measured rather than assumed:
 
 ## 4. Read this before quoting the headline number
 
-Decode decays substantially with context depth (`llama-bench -d`, Vulkan):
+Decode decays with context depth (`llama-bench -d`), and the backend gap widens
+exactly where agent sessions live:
 
-| depth | tg128 |
-| ---: | ---: |
-| 0 | 12.40 ± 0.10 |
-| 8,192 | 10.91 ± 0.02 (−12%) |
-| 32,768 | 7.76 ± 0.00 (−37%) |
+| depth | Vulkan | ROCm/HIP |
+| ---: | ---: | ---: |
+| 0 | 12.40 ± 0.10 | 8.62 ± 0.10 |
+| 8,192 | 10.91 (−12%) | 3.76 (−56%) |
+| 32,768 | **7.76 (−37%)** | **2.00 (−77%)** |
 
-Real agentic sessions sit at 8K–32K, so plan for **8–11 t/s**, not 12.4.
+At 32K Vulkan is 3.9x faster. Plan agentic work at **8–11 t/s**, not 12.4.
+
+**The fused-op situation is the opposite of what the numbers suggest.** The
+startup log shows that on Vulkan *all four* fused DeepSeek-V4 ops fall back to
+generic kernels:
+
+```
+resolve_fused_ops: Lightning Indexer not supported, set to disabled
+resolve_fused_ops: fused DeepSeek V4 HC pre  not supported, set to disabled
+resolve_fused_ops: fused DeepSeek V4 HC comb not supported, set to disabled
+resolve_fused_ops: fused DeepSeek V4 HC post not supported, set to disabled
+```
+
+ROCm/HIP emits none of those warnings — it has all four active — and still loses
+by the margins above. So the missing Vulkan kernels are **headroom, not a
+defect**. The depth cost lives in the unfused `build_lid_top_k` path
+(`src/models/deepseek4.cpp:587`), which materialises a full `mul_mat` over every
+compressed row plus several `ggml_cont` permutes per layer instead of calling
+`ggml_lightning_indexer`. That is a software gap, not a silicon limit; if ggml
+gains a Vulkan lightning-indexer kernel, re-measure everything here.
+
+Always read these probe lines at startup. Comparing two backends without them
+means comparing two different kernel paths without knowing it.
 
 **Prefill decays far worse, and this is the real usability limit.** A six-turn
 session, each turn appending the same ~4.2K-token file, prompt cache on, so the
@@ -129,7 +154,9 @@ carve. Memory is not the constraint; depth-dependent prefill is.
 
 ## 4a. Prompt-cache behaviour, measured
 
-`--cache-reuse 256 --cache-ram 8192`, same session as above:
+`--cache-ram 8192`. Note `--cache-reuse` is **inert** for this model: the server
+logs `cache_reuse is not supported by this context, it will be disabled` on both
+backends, so everything below comes from whole-prefix `--cache-ram` matching.
 
 - **Pure append works.** Each turn reprocesses only the newly appended tokens.
 - **Tool-result append is cheap.** Appending `<tool_result>…</tool_result>` to a
