@@ -103,12 +103,47 @@ Decode decays substantially with context depth (`llama-bench -d`, Vulkan):
 | 8,192 | 10.91 ± 0.02 (−12%) |
 | 32,768 | 7.76 ± 0.00 (−37%) |
 
-Real agentic sessions sit at 8K–32K, so plan for **8–11 t/s**, not 12.4. This is
-precisely why the prompt-cache flags matter more than peak throughput.
+Real agentic sessions sit at 8K–32K, so plan for **8–11 t/s**, not 12.4.
+
+**Prefill decays far worse, and this is the real usability limit.** A six-turn
+session, each turn appending the same ~4.2K-token file, prompt cache on, so the
+same number of tokens is reprocessed every turn:
+
+| turn | context | reprocessed | cached | prefill | effective prefill | wall |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 4,219 | 4,219 | 0 | 42.9 s | 98 t/s | 47.4 s |
+| 2 | 8,430 | 4,215 | 4,215 | 80.1 s | 53 t/s | 84.6 s |
+| 3 | 12,641 | 4,215 | 8,426 | 106.9 s | 39 t/s | 111.8 s |
+| 4 | 16,857 | 4,220 | 12,637 | 140.3 s | 30 t/s | 145.4 s |
+| 5 | 21,068 | 4,215 | 16,853 | 150.7 s | 28 t/s | 156.0 s |
+| 6 | 25,279 | 4,215 | 21,064 | 173.1 s | **24 t/s** | 178.6 s |
+
+Identical work per turn, 4x the time by turn 6. `pp512 134.89` is measured at
+depth 0 and is wildly optimistic for real sessions. At ~25K context a 4K-token
+turn costs about three minutes. Budget accordingly, and prefer many short
+conversations over one long one.
 
 KV costs about 6.7 KiB/token at F16, so 128K context is roughly 0.9 GiB. Weights
 plus buffers commit about 85.6 GiB on the adapter, inside the 96 GiB dedicated
-carve.
+carve. Memory is not the constraint; depth-dependent prefill is.
+
+## 4a. Prompt-cache behaviour, measured
+
+`--cache-reuse 256 --cache-ram 8192`, same session as above:
+
+- **Pure append works.** Each turn reprocesses only the newly appended tokens.
+- **Tool-result append is cheap.** Appending `<tool_result>…</tool_result>` to a
+  12.6K-token conversation reprocessed 531 tokens in 7.1 s. The normal agent
+  loop is well served.
+- **Changing the prefix destroys everything.** Editing the system prompt (adding
+  a timestamp) on that same 12.6K conversation reprocessed all 12,674 tokens in
+  **225.8 s**. Any harness that injects a clock, a session id, or rotating state
+  into the system prompt converts every turn into a full reprocess. On this model
+  that is minutes per turn, not seconds. Put volatile state in the *latest* user
+  message, never in the system prompt.
+- **Multiple prefixes coexist.** Switching back to the original system prompt
+  afterwards reprocessed 4 tokens (12,652 cached) in 0.6 s, so the earlier cache
+  survived the detour at `--cache-ram 8192`.
 
 ## 5. Dead ends, so they are not re-derived
 
@@ -162,7 +197,18 @@ carve.
    near 2.3 GiB here) before believing any OOM, and re-run the baseline after
    cleanup rather than assuming earlier numbers were unaffected.
 
-## 7. Still open
+## 7. Verdict on fitness for use
+
+It runs, it answers coherently, it emits well-formed DSML tool calls, and it fits
+the carve with room to spare. But depth-dependent prefill makes long agentic
+sessions expensive: roughly three minutes per 4K-token turn once the
+conversation reaches ~25K. It is well suited to short, self-contained tasks and
+to batch work where latency does not matter, and poorly suited to interactive
+long-context agent loops. Whether that trade is worth it against the smaller
+models already in the roster is a judgement call that needs a quality comparison
+that has not been run yet — see below.
+
+## 8. Still open
 
 - Quality of the 2-bit routed experts has not been evaluated at all. Everything
   above establishes that it runs and answers coherently, not that it is good.
