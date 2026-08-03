@@ -1,8 +1,11 @@
 # DeepSeek-V4-Flash-0731 on Windows / Strix Halo (gfx1151)
 
 Measured 2026-08-02 on the reference box: Ryzen AI MAX+ 395, Radeon 8060S
-(`gfx1151`), 128 GB unified memory with a 96/32 BIOS carve (Windows sees
-32,407 MiB of system RAM), Windows 11, ROCm 7.1 HIP SDK installed.
+(`gfx1151`), 128 GB unified memory, Windows 11, ROCm 7.1 HIP SDK installed.
+The 96/32 carve is **inferred**, not read from the BIOS: Windows reports
+32,407 MiB of system RAM, and llama.cpp reports 110,456 MiB for the adapter,
+which is the dedicated carve plus WDDM shared memory rather than the carve
+itself. Confirm in BIOS before relying on the exact figure.
 
 **Headline: this model does not belong on the ROCmFPX HIP lane. Run it on
 Vulkan.** The winning configuration needs no compiler, no ROCm SDK, and nothing
@@ -21,7 +24,9 @@ from this repository.
 | ROCmFPX fork `c868e96` (this repo) | ~107 @3017 (server) | ~7.5 (server) |
 | _Linux Vulkan/RADV reference, same model class_ | _155.64_ | _13.27_ |
 
-`llama-server`, identical flags and prompts, ROCm/HIP -> Vulkan:
+`llama-server`, identical flags and prompts, ROCm/HIP -> Vulkan. **These are
+single runs.** Repeated `llama-bench` runs on this box vary by about 5%
+run-to-run, so read the direction as solid and the magnitude as approximate:
 
 | test | ROCm/HIP | Vulkan | delta |
 | --- | ---: | ---: | ---: |
@@ -30,9 +35,12 @@ from this repository.
 | decode @3017 tokens | 6.65 | 11.80 | +77% |
 | decode, tool-call turn | 7.86 | 11.78 | +50% |
 
-Windows Vulkan lands within ~6.5% of the published Linux Vulkan/RADV decode
-figure, so the original gap was never a Windows limitation and the model never
-needed requantising.
+Windows Vulkan lands close to the published Linux Vulkan/RADV decode figure, so
+the original gap was never a Windows limitation and the model never needed
+requantising. **Treat that comparison as indicative, not exact**: the Linux
+figure is a different artifact (UD-IQ2_XXS, 90.86 GB), a different OS, and a
+different build. It is close enough to rule out "Windows is the problem" and not
+close enough to quote a percentage from.
 
 ## 2. Artifact
 
