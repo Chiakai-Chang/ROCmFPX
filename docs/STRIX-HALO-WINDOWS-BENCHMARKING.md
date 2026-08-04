@@ -163,6 +163,9 @@ then KV pairs and tensor infos) and is worth keeping around for machines without
 a scientific Python stack. For a remote file, the DeepSeek-V4 runbook documents
 verifying a multi-GB artifact by range-fetching only its header.
 
+When two quantizations of the *same* model are in play, §6 covers how to decide
+between them.
+
 ---
 
 ## 4. Sizing: attention interval dominates KV, not layer count
@@ -219,6 +222,101 @@ TheRock nightlies are Linux numbers and are not reachable from the Windows SDK.
 
 Claims in this section that are not marked as measured on the reference box are
 third-party reports, recorded so they can be tested rather than assumed.
+
+---
+
+## 6. Choosing between two quantizations of the same model
+
+Measured 2026-08-04. The `qwen35moe` model from §2 is published by the same
+author as two separate quantization lines, `OPAL` and `ONYX`, at the same nominal
+tier. Publishers increasingly ship several recipes of one model and assert that
+one is better without publishing a number; this is the procedure for settling it.
+
+**Step 1 — establish they are the same weights.** Parse both headers and diff
+them. Here: 733 identically-named tensors with identical shapes, and of 48 KV
+pairs exactly one differed, `quantize.imatrix.entries_count` (658 versus 342).
+That is a strong result beyond "same model" — identical tokenizer, chat template
+and sampling keys mean the existing launcher transfers verbatim apart from the
+path, and it removes template differences as an explanation for any quality gap.
+
+**Step 2 — diff the recipe per tensor class, not per file.** Both files were the
+same size (23.75 versus 23.72 GiB), so the newer one is not "more bits", it is
+the same budget spent differently:
+
+| tensor class | OPAL | ONYX | layers |
+| --- | --- | --- | --- |
+| `attn_gate` | Q4_K | Q5_K / Q6_K | 30 |
+| `attn_output` | Q6_K | Q8_0 | the 10 real attention layers |
+| `ssm_alpha` | Q6_K | F32 | 30 |
+| `attn_qkv` | Q6_K | Q5_K | 26 |
+| `attn_q` / `attn_k` / `attn_v` | Q6_K | Q5_K | 4 |
+| `ssm_out` | Q6_K | Q5_K | 26 |
+
+The shape of that trade — bits pulled out of the large projections and pushed
+into small, sensitive tensors — is what predicts *where* a difference will show
+up, and it is worth forming that expectation before measuring.
+
+**Step 3 — bench speed, expecting a tie.** Both files in one `llama-bench`
+invocation (§1), `-ngl 999 -fa on -b 4096 -ub 2048 -lm none -r 3`:
+
+| test | OPAL | ONYX |
+| --- | ---: | ---: |
+| pp512 | 958.30 ± 16.19 | 963.48 ± 22.89 |
+| pp512 @ d8192 | 793.15 ± 11.11 | 801.51 ± 6.29 |
+| pp512 @ d32768 | 546.24 ± 5.01 | 546.49 ± 7.72 |
+| tg128 | 62.30 ± 2.00 | 63.62 ± 0.67 |
+| tg128 @ d8192 | 58.69 ± 0.92 | 60.09 ± 0.03 |
+| tg128 @ d32768 | 51.61 ± 0.25 | 52.08 ± 0.11 |
+
+Every prefill difference is inside the noise band. Decode is 0.9–2.4% higher for
+the smaller file with non-overlapping intervals at depth, which is the bandwidth
+arithmetic showing through, and is not a reason to prefer a quantization.
+
+**Step 4 — measure quality with a paired perplexity test.** Run
+`llama-perplexity -c 4096 -fa on -ngl 999 -b 4096 -ub 512 --load-mode none -f
+corpus.txt` over the same corpora for both files. The `±` that tool prints is an
+*unpaired* interval over chunks and is far too wide to resolve a sub-1%
+difference between two quantizations. Both runs see identical chunks, so pair
+them: recover per-chunk mean NLL from the cumulative `[i]value` series the tool
+prints, using `nll_i = ln(v_i)·i − ln(v_{i−1})·(i−1)`, then t-test the paired
+differences.
+
+| corpus | chunks | OPAL | ONYX | Δ | paired *t* |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| English technical prose, 1 MB | 80 | 3.0918 | 3.0896 | −0.071% | +0.67 |
+| C++ source, 1 MB | 60 | 1.7832 | 1.7813 | −0.107% | +2.07 |
+| Chinese technical prose, 478 KB | 34 | 7.2945 | **7.2463** | **−0.661%** | **+5.09** |
+
+**The result only exists in one of the three corpora.** English and code are
+statistically a wash; Chinese is decisive, with the newer quantization better on
+28 of 34 chunks. That matches the recipe diff from step 2 — non-English tokens
+are the most sensitive to quantization error in attention gating, and
+`attn_gate` and `attn_output` are exactly where the bits went.
+
+Three transferable points:
+
+- **Benchmark per language, not only per content type.** An English-corpus
+  perplexity result does not generalize to non-English use. Had only the English
+  and code corpora been run, the honest conclusion would have been "no
+  difference" — and it would have been wrong for the machine's actual workload.
+- **Use the paired test.** The same three measurements are unremarkable when
+  read off the unpaired intervals the tool prints; pairing is what turns them
+  into one decisive result and two clean ties.
+- **Record the counter-evidence.** The winning file's imatrix covers roughly half
+  as many entries (342 versus 658), so more of it was quantized without imatrix
+  guidance. It still won; that is a reason to hold the conclusion at the strength
+  the data supports, not to suppress the observation.
+
+Corpora are cheap to assemble from whatever is on the machine — a repository's
+Markdown for prose, its `src/**/*.{cpp,h}` for code. About 1 MB per corpus gives
+34–80 chunks at `-c 4096`, roughly five minutes per model.
+
+**Verify the replacement by serving it before deleting the incumbent.** Per §1,
+`llama-bench` and `llama-perplexity` never allocate the server's compute
+buffers. The replacement here was served with its real launcher flags first —
+`n_slots = 1, n_ctx_slot = 262144`, a 200 from `/v1/chat/completions`, and
+30.08 GiB of process-local GPU memory against the 23.72 + 5.00 + ~1.3 arithmetic
+of §4 — and only then was the superseded file removed.
 
 ---
 
