@@ -168,3 +168,8 @@ AGENTS.local.md
 # Internal AI/reviewer handoff + one-off conversion helper — kept local, not published
 /ROCMFPX-SPEEDUP-HANDOFF.md
 /scripts/convert-step37-nvfp4-to-rocmfp4.sh
+
+# Local machine-specific runbooks and notes
+/LOCAL-*.md
+/LOCAL-MUSE-GLIMMER-NOTES.md
+

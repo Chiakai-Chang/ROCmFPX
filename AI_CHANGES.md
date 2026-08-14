@@ -193,3 +193,20 @@ byte 2: v2[5:4] | v3[5:0]<<2
 *(Repeat per file. Keep entries factual. Do not remove or rewrite earlier sessions.)*
 
 -->
+
+## Session 003 — 2026-08-14
+
+**Scope:** Muse-Glimmer-30B architecture guide, DFlash speculative decoding contract, long-context ATEM stability analysis, and local machine runbook isolation.
+
+### `docs/MUSE-GLIMMER-DFLASH-SERVING.md`
+
+| Fix | Detail |
+|-----|--------|
+| Serving guide & stability analysis | Added de-identified documentation covering Muse Glimmer architecture (52 layers, 39 SWA local with RoPE + 13 global with NoPE), DFlash block diffusion drafter contract (`--spec-draft-n-max 15`), failure mode analysis on context over-extrapolation causing XML/ATEM tag corruption, two-channel reasoning budget management, and production serving configurations. |
+
+### `.gitignore`
+
+| Fix | Detail |
+|-----|--------|
+| Local runbook isolation | Added `/LOCAL-*.md` and `/LOCAL-MUSE-GLIMMER-NOTES.md` to ignore local-specific paths and hardware benchmark artifacts. |
+
