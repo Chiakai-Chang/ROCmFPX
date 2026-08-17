@@ -210,3 +210,24 @@ byte 2: v2[5:4] | v3[5:0]<<2
 |-----|--------|
 | Local runbook isolation | Added `/LOCAL-*.md` and `/LOCAL-MUSE-GLIMMER-NOTES.md` to ignore local-specific paths and hardware benchmark artifacts. |
 
+---
+
+## Session 004 — 2026-08-18
+
+**Scope:** Qwen 3.8 27B hybrid SSM-Attention architecture characterization, MTP speculative decoding verification (65/65 blocks), `ROCmFP4_FAST` quantization pipeline with imatrix calibration, and Strix Halo (Ryzen AI MAX+ 395 / gfx1151) benchmark validation.
+
+### `docs/QWEN38-ROCMFP4-SERVING.md`
+
+| Fix | Detail |
+|-----|--------|
+| Serving guide & benchmark envelopes | Added documentation covering Qwen 3.8 27B hybrid SSM architecture (64 backbone layers: 16 Gated Attention + 48 Gated DeltaNet SSM + 1 MTP draft layer), MTP speculative decoding contract (`--spec-type draft-mtp --spec-draft-n-max 4 --spec-draft-p-min 0.60`), `ROCmFP4_FAST` 4.26 BPW quantization workflow from high-precision Q8_0 parent + imatrix, asymmetric TurboQuant KV cache scaling across 262K context, and empirical Strix Halo benchmarks (346 tok/s PP, 30–36 tok/s MTP TG). |
+
+### Validation
+
+| Check | Result |
+|-------|--------|
+| `llama-quantize` Ninja + ROCm Clang build | passed, linked `llama-quantize.exe` |
+| `Qwen3.8-27B-Uncensored-Q8_0.gguf` + `imatrix.dat` $\to$ `ROCmFP4_FAST` | passed, `13,877.14 MiB / 4.26 BPW`, all 866 tensors & 65/65 blocks verified |
+| `llama-bench` on Radeon 8060S (`gfx1151`) | `pp512`: **346.54 ± 9.98 tok/s**, `tg64`: **13.75 ± 0.05 tok/s** unassisted, **~30.5–36.0 tok/s** with MTP |
+
+
