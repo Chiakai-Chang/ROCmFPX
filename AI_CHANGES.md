@@ -283,11 +283,12 @@ byte 2: v2[5:4] | v3[5:0]<<2
 
 | File | Change |
 |------|--------|
-| `Qwen3.8-27B-Uncensored_rocm714_mtp_textonly.bat` | Upgraded `--spec-draft-n-max` to 6, corrected `--keep -1` syntax |
-| `Qwen3.8-27B-Uncensored_rocm714_mtp_vision.bat` | Upgraded `--spec-draft-n-max` to 6, corrected `--keep -1` syntax |
-| `Qwen3.8-27B-UD-Q6K_rocm714_mtp_textonly.bat` | Upgraded `--spec-draft-n-max` to 6, corrected `--keep -1` syntax |
-| `Qwen3.8-27B-UD-Q6K_rocm714_mtp_vision.bat` | Upgraded `--spec-draft-n-max` to 6, corrected `--keep -1` syntax |
-| `Muse-Glimmer-30B*.bat` (4 files) | Corrected `--keep -1` syntax |
+| `Qwen3.8-27B-Uncensored_rocm714_mtp_textonly.bat` | Added `--reasoning-preserve`, tuned MTP to `n_max 2` (~18.8 tok/s), cleaned sampling to `--temp 0.7 --top-p 0.95`. |
+| `Qwen3.8-27B-Uncensored_rocm714_mtp_vision.bat` | Added `--image-min-tokens 1024` (VL grounding fix), `--reasoning-preserve`, tuned MTP to `n_max 2`, cleaned sampling. |
+| `Qwen3.8-27B-UD-Q6K_rocm714_mtp_textonly.bat` | Tuned MTP to `n_max 2`, cleaned sampling parameters. |
+| `Qwen3.8-27B-UD-Q6K_rocm714_mtp_vision.bat` | Added `--image-min-tokens 1024`, tuned MTP to `n_max 2`. |
+| `Muse-Glimmer-30B*.bat` (4 files) | Standardized with `--context-shift --keep -1`. |
+
 
 
 
