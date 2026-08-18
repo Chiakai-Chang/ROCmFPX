@@ -230,4 +230,38 @@ byte 2: v2[5:4] | v3[5:0]<<2
 | `Qwen3.8-27B-Uncensored-Q8_0.gguf` + `imatrix.dat` $\to$ `ROCmFP4_FAST` | passed, `13,877.14 MiB / 4.26 BPW`, all 866 tensors & 65/65 blocks verified |
 | `llama-bench` on Radeon 8060S (`gfx1151`) | `pp512`: **346.54 ± 9.98 tok/s**, `tg64`: **13.75 ± 0.05 tok/s** unassisted, **~30.5–36.0 tok/s** with MTP |
 
+---
+
+## Session 005 — 2026-08-18
+
+**Scope:** Multi-runner live benchmark sweeps, KV Cache quantization impact on Prompt Processing (PP), context shift robustness standardization (`--context-shift -n-keep -1`), and external technical tracking (`strix-halo-guide`, `Lucebox`, AMD Day-0 whitepapers).
+
+### `LOCAL-ENVIRONMENT-MEMORY.md`
+
+| Fix | Detail |
+|-----|--------|
+| Standard Serving Directives | Codified golden rules for all model launchers: `-np 1`, `--context-shift -n-keep -1`, native context limits, unquantized F16 KV cache on 96GB VRAM, and MTP/DFlash speculation. |
+| External references & Upstream tracking | Indexed `strix-halo-guide` (Ryzen AI MAX+ 395 empirical benchmark authority), `Lucebox` (DFlash/DSpark drafter hub), and AMD Day-0 client whitepapers. |
+
+### Batch Launchers (`C:\models\*.bat`)
+
+| File | Change |
+|------|--------|
+| `Qwen3.8-27B-Uncensored_rocm714_mtp_textonly.bat` | Added `--context-shift -n-keep -1` |
+| `Qwen3.8-27B-Uncensored_rocm714_mtp_vision.bat` | Added `--context-shift -n-keep -1` |
+| `Qwen3.8-27B-UD-Q6K_rocm714_mtp_textonly.bat` | Added `--context-shift -n-keep -1` |
+| `Qwen3.8-27B-UD-Q6K_rocm714_mtp_vision.bat` | Added `--context-shift -n-keep -1` |
+| `Muse-Glimmer-30B_rocm714_dflash_textonly.bat` | Added `--context-shift -n-keep -1` |
+| `Muse-Glimmer-30B_rocm714_dflash.bat` | Added `--context-shift -n-keep -1` |
+| `Muse-Glimmer-30B-Abliterated_rocm714_dflash_textonly.bat` | Added `--context-shift -n-keep -1` |
+| `Muse-Glimmer-30B-Abliterated_rocm714_dflash.bat` | Added `--context-shift -n-keep -1` |
+
+### Validation & Benchmark Insights
+
+| Check | Result | Key Takeaway |
+|-------|--------|--------------|
+| Live 3-Runner Sweep (`Qwen3.8-27B Q6_K`) | ROCm 7.14: **323.3 tok/s PP / 9.54 tok/s TG / 18.82 tok/s MTP** vs Vulkan: **163.4 tok/s PP** | ROCm HIP provides 2× faster Prompt Processing on `gfx1151`. |
+| KV Cache Quant Sweep (Local build) | F16 KV: **227.6 tok/s PP** vs F16/Turbo4: **211.3 tok/s PP** vs Q8/Turbo4: **59.7 tok/s PP** | KV cache quantization degrades PP speed due to on-the-fly dequantization overhead in compute-bound phase. Native F16 KV is optimal when VRAM is abundant. |
+
+
 
