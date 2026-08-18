@@ -263,5 +263,27 @@ byte 2: v2[5:4] | v3[5:0]<<2
 | Live 3-Runner Sweep (`Qwen3.8-27B Q6_K`) | ROCm 7.14: **323.3 tok/s PP / 9.54 tok/s TG / 18.82 tok/s MTP** vs Vulkan: **163.4 tok/s PP** | ROCm HIP provides 2× faster Prompt Processing on `gfx1151`. |
 | KV Cache Quant Sweep (Local build) | F16 KV: **227.6 tok/s PP** vs F16/Turbo4: **211.3 tok/s PP** vs Q8/Turbo4: **59.7 tok/s PP** | KV cache quantization degrades PP speed due to on-the-fly dequantization overhead in compute-bound phase. Native F16 KV is optimal when VRAM is abundant. |
 
+---
+
+## Session 006 — 2026-08-18
+
+**Scope:** Cross-repository ecosystem evaluation (`daimonionnn/amd-rocmfpx-for-win`, `hec-ovi/llama-vulkan-strix`, `hec-ovi/vllm-qwen`, `JeremiahM37/strix-halo-sglang`), tool-calling quality validation, Strix Halo memory bandwidth laws, and MTP tuning optimizations.
+
+### `LOCAL-ENVIRONMENT-MEMORY.md`
+
+| Fix | Detail |
+|-----|--------|
+| Windows 11 Peer Evidence | Added `daimonionnn/amd-rocmfpx-for-win` benchmarking on Strix Halo: `Q6_K` ranked #1 in tool-eval-bench (88.1 score) across 7 quants, confirming optimal accuracy-speed tradeoff over ROCmFP4 (82.7 score). |
+| Bandwidth Laws & MTP | Recorded empirical physical constant ($t/s \times \text{GiB} \approx 198$) confirming decode memory bandwidth saturation, and MTP tuning (`--spec-draft-n-max 6`, `--spec-draft-p-min 0.00`). |
+| Framework Comparison | Documented comparative metrics against vLLM (4.3 t/s) and SGLang (1.7 t/s single-stream) establishing `llama.cpp` + ROCm GGUF as the definitive client runtime. |
+
+### Batch Launchers (`C:\models\Qwen3.8-27B-Uncensored*.bat`)
+
+| File | Change |
+|------|--------|
+| `Qwen3.8-27B-Uncensored_rocm714_mtp_textonly.bat` | Upgraded `--spec-draft-n-max` from 2 to 6 (+2.8% throughput) |
+| `Qwen3.8-27B-Uncensored_rocm714_mtp_vision.bat` | Upgraded `--spec-draft-n-max` from 2 to 6 |
+
+
 
 
