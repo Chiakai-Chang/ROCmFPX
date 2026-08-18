@@ -277,6 +277,7 @@ byte 2: v2[5:4] | v3[5:0]<<2
 | Bandwidth Laws & MTP | Recorded empirical physical constant ($t/s \times \text{GiB} \approx 198$) confirming decode memory bandwidth saturation, and MTP tuning (`--spec-draft-n-max 6`, `--spec-draft-p-min 0.00`). |
 | Framework Comparison | Documented comparative metrics against vLLM (4.3 t/s) and SGLang (1.7 t/s single-stream) establishing `llama.cpp` + ROCm GGUF as the definitive client runtime. |
 | Qwen 3.8 27B ROCm Matrix | Added `AIwork4me/Qwen3.8-27B-ROCm` 28-cell benchmark receipts on `gfx1151`, validating 33.9 GiB memory footprint at 262K context, MTP acceleration, and formal vLLM non-interactive ruling. |
+| ROCmFP4 Architecture Lab | Added `kingjones30/strix-halo-quant-lab` empirical findings: ROCmFP4 accelerates large-active MoE models (+62% on Laguna) but harms MLA/hybrid-linear long-context models (-37%), and indexed 55 HuggingFace pre-quantized models. |
 
 ### Batch Launchers (`C:\models\Qwen3.8-27B-Uncensored*.bat`)
 
