@@ -279,12 +279,16 @@ byte 2: v2[5:4] | v3[5:0]<<2
 | Qwen 3.8 27B ROCm Matrix | Added `AIwork4me/Qwen3.8-27B-ROCm` 28-cell benchmark receipts on `gfx1151`, validating 33.9 GiB memory footprint at 262K context, MTP acceleration, and formal vLLM non-interactive ruling. |
 | ROCmFP4 Architecture Lab | Added `kingjones30/strix-halo-quant-lab` empirical findings: ROCmFP4 accelerates large-active MoE models (+62% on Laguna) but harms MLA/hybrid-linear long-context models (-37%), and indexed 55 HuggingFace pre-quantized models. |
 
-### Batch Launchers (`C:\models\Qwen3.8-27B-Uncensored*.bat`)
+### Batch Launchers (`C:\models\*.bat`)
 
 | File | Change |
 |------|--------|
-| `Qwen3.8-27B-Uncensored_rocm714_mtp_textonly.bat` | Upgraded `--spec-draft-n-max` from 2 to 6 (+2.8% throughput) |
-| `Qwen3.8-27B-Uncensored_rocm714_mtp_vision.bat` | Upgraded `--spec-draft-n-max` from 2 to 6 |
+| `Qwen3.8-27B-Uncensored_rocm714_mtp_textonly.bat` | Upgraded `--spec-draft-n-max` to 6, corrected `--keep -1` syntax |
+| `Qwen3.8-27B-Uncensored_rocm714_mtp_vision.bat` | Upgraded `--spec-draft-n-max` to 6, corrected `--keep -1` syntax |
+| `Qwen3.8-27B-UD-Q6K_rocm714_mtp_textonly.bat` | Upgraded `--spec-draft-n-max` to 6, corrected `--keep -1` syntax |
+| `Qwen3.8-27B-UD-Q6K_rocm714_mtp_vision.bat` | Upgraded `--spec-draft-n-max` to 6, corrected `--keep -1` syntax |
+| `Muse-Glimmer-30B*.bat` (4 files) | Corrected `--keep -1` syntax |
+
 
 
 
