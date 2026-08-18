@@ -276,6 +276,7 @@ byte 2: v2[5:4] | v3[5:0]<<2
 | Windows 11 Peer Evidence | Added `daimonionnn/amd-rocmfpx-for-win` benchmarking on Strix Halo: `Q6_K` ranked #1 in tool-eval-bench (88.1 score) across 7 quants, confirming optimal accuracy-speed tradeoff over ROCmFP4 (82.7 score). |
 | Bandwidth Laws & MTP | Recorded empirical physical constant ($t/s \times \text{GiB} \approx 198$) confirming decode memory bandwidth saturation, and MTP tuning (`--spec-draft-n-max 6`, `--spec-draft-p-min 0.00`). |
 | Framework Comparison | Documented comparative metrics against vLLM (4.3 t/s) and SGLang (1.7 t/s single-stream) establishing `llama.cpp` + ROCm GGUF as the definitive client runtime. |
+| Qwen 3.8 27B ROCm Matrix | Added `AIwork4me/Qwen3.8-27B-ROCm` 28-cell benchmark receipts on `gfx1151`, validating 33.9 GiB memory footprint at 262K context, MTP acceleration, and formal vLLM non-interactive ruling. |
 
 ### Batch Launchers (`C:\models\Qwen3.8-27B-Uncensored*.bat`)
 
@@ -283,6 +284,7 @@ byte 2: v2[5:4] | v3[5:0]<<2
 |------|--------|
 | `Qwen3.8-27B-Uncensored_rocm714_mtp_textonly.bat` | Upgraded `--spec-draft-n-max` from 2 to 6 (+2.8% throughput) |
 | `Qwen3.8-27B-Uncensored_rocm714_mtp_vision.bat` | Upgraded `--spec-draft-n-max` from 2 to 6 |
+
 
 
 
