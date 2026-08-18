@@ -289,6 +289,20 @@ byte 2: v2[5:4] | v3[5:0]<<2
 | `Qwen3.8-27B-UD-Q6K_rocm714_mtp_vision.bat` | Added `--image-min-tokens 1024`, tuned MTP to `n_max 2`. |
 | `Muse-Glimmer-30B*.bat` (4 files) | Standardized with `--context-shift --keep -1`. |
 
+---
+
+## Session 007 — 2026-08-19
+
+**Scope:** Multimodal video input diagnosis, `libmtmd` container constraints, and video keyframe extraction tooling.
+
+### `LOCAL-ENVIRONMENT-MEMORY.md`
+
+| Fix | Detail |
+|-----|--------|
+| Multimodal Video Protocol | Documented `libmtmd` format boundaries: raw `.mp4` container uploads trigger task cancellation; VLM video understanding requires keyframe slicing (8-16 frames). |
+| Video Tooling | Created `C:\models\Extract-Video-Frames.bat` (drag-and-drop ffmpeg frame extraction) and `C:\models\Ask-Video.py` (automated frame extraction + streaming multimodal chat). |
+
+
 
 
 
