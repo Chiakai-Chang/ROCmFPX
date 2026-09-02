@@ -40,6 +40,7 @@ bool ggml_op_can_inplace(enum ggml_op op) {
         case GGML_OP_SILU_BACK:
         case GGML_OP_RMS_NORM:
         case GGML_OP_RMS_NORM_BACK:
+        case GGML_OP_CLAMP:
         case GGML_OP_SOFT_MAX:
         case GGML_OP_SOFT_MAX_BACK:
             return true;
@@ -150,7 +151,7 @@ static void ggml_dyn_tallocr_insert_block(struct tallocr_chunk * chunk, size_t o
 
 static void ggml_dyn_tallocr_remove_block(struct tallocr_chunk * chunk, int idx) {
     // shift all elements after idx by 1 to the left, overwriting the element at idx
-    for (int i = idx; i < chunk->n_free_blocks; i++) {
+    for (int i = idx; i < chunk->n_free_blocks - 1; i++) {
         chunk->free_blocks[i] = chunk->free_blocks[i+1];
     }
     chunk->n_free_blocks--;
@@ -1183,7 +1184,7 @@ static ggml_backend_buffer_t ggml_backend_alloc_ctx_tensors_from_buft_impl(
             this_size = GGML_PAD(ggml_backend_buft_get_alloc_size(buft, t), alignment);
         }
 
-        if (cur_buf_size > 0 && (cur_buf_size + this_size) > max_size) {
+        if (cur_buf_size > 0 && this_size > 0 && (cur_buf_size + this_size) > max_size) {
             // allocate tensors in the current buffer
             if (!no_alloc && !alloc_tensor_range(ctx, first, t, buft, cur_buf_size, &buffers, &n_buffers)) {
                 return NULL;

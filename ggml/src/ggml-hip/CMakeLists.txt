@@ -61,7 +61,6 @@ file(GLOB   GGML_HEADERS_ROCM "../ggml-cuda/*.cuh")
 list(APPEND GGML_HEADERS_ROCM "../../include/ggml-cuda.h")
 
 file(GLOB   GGML_SOURCES_ROCM "../ggml-cuda/*.cu")
-list(APPEND GGML_SOURCES_ROCM "../../rocmfp4/rocmfp4_hip.cu")
 file(GLOB   SRCS "../ggml-cuda/template-instances/fattn-tile*.cu")
 list(APPEND GGML_SOURCES_ROCM ${SRCS})
 file(GLOB   SRCS "../ggml-cuda/template-instances/fattn-mma*.cu")
@@ -79,15 +78,8 @@ else()
     list(APPEND GGML_SOURCES_ROCM
         ../ggml-cuda/template-instances/fattn-vec-instance-f16-f16.cu
         ../ggml-cuda/template-instances/fattn-vec-instance-q4_0-q4_0.cu
-        ../ggml-cuda/template-instances/fattn-vec-instance-q4_0_rocmfp4-q4_0_rocmfp4.cu
-        ../ggml-cuda/template-instances/fattn-vec-instance-q4_0_rocmfp4_fast-q4_0_rocmfp4_fast.cu
-        ../ggml-cuda/template-instances/fattn-vec-instance-q3_0_rocmfpx-q3_0_rocmfpx.cu
-        ../ggml-cuda/template-instances/fattn-vec-instance-q6_0_rocmfpx-q6_0_rocmfpx.cu
-        ../ggml-cuda/template-instances/fattn-vec-instance-q8_0_rocmfpx-q8_0_rocmfpx.cu
         ../ggml-cuda/template-instances/fattn-vec-instance-q8_0-q8_0.cu
-        ../ggml-cuda/template-instances/fattn-vec-instance-bf16-bf16.cu
-        ../ggml-cuda/template-instances/fattn-vec-instance-turbo3_0-turbo3_0.cu
-        ../ggml-cuda/template-instances/fattn-vec-instance-turbo4_0-turbo4_0.cu)
+        ../ggml-cuda/template-instances/fattn-vec-instance-bf16-bf16.cu)
 endif()
 
 ggml_add_backend_library(ggml-hip
@@ -102,7 +94,7 @@ endif()
 
 add_compile_definitions(GGML_USE_HIP)
 
-if (GGML_HIP_FORCE_MMQ OR GGML_CUDA_FORCE_MMQ)
+if (GGML_CUDA_FORCE_MMQ)
     add_compile_definitions(GGML_CUDA_FORCE_MMQ)
 endif()
 
@@ -122,8 +114,8 @@ if (GGML_HIP_NO_VMM)
     add_compile_definitions(GGML_HIP_NO_VMM)
 endif()
 
-if (GGML_HIP_ROCWMMA_FATTN)
-    add_compile_definitions(GGML_HIP_ROCWMMA_FATTN)
+if (GGML_HIP_ROCMI4_W4A4)
+    add_compile_definitions(GGML_ROCMI4_W4A4=1)
 endif()
 
 if (NOT GGML_HIP_MMQ_MFMA)
@@ -163,5 +155,3 @@ if (GGML_HIP_RCCL)
 endif()
 
 target_link_libraries(ggml-hip PRIVATE ggml-base hip::host roc::rocblas roc::hipblas)
-
-target_compile_options(ggml-hip PRIVATE "$<$<COMPILE_LANGUAGE:HIP>:-ffast-math>")
