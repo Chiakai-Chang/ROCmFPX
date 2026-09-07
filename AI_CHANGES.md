@@ -302,8 +302,50 @@ byte 2: v2[5:4] | v3[5:0]<<2
 | Multimodal Video Protocol | Documented `libmtmd` format boundaries: raw `.mp4` container uploads trigger task cancellation; VLM video understanding requires keyframe slicing (8-16 frames). |
 | Video Tooling | Created `C:\models\Extract-Video-Frames.bat` (drag-and-drop ffmpeg frame extraction) and `C:\models\Ask-Video.py` (automated frame extraction + streaming multimodal chat). |
 
+---
 
+## Session 008 — 2026-08-20
 
+**Scope:** Unified flagship launcher for Qwen 3.8 27B on Strix Halo (`C:\models\Qwen3.8-27B_StrixHalo_Ultimate.bat`), integrating MTP sweet spot tuning (draft n=5, p=0.00), multimodal zero-overhead vision adapter, full 256K context shift safety, and universal Codex/WebUI Jinja compatibility.
+
+### `C:\models\Qwen3.8-27B_StrixHalo_Ultimate.bat`
+
+| Fix | Detail |
+|-----|--------|
+| Flagship Launcher | Created unified all-in-one launcher combining Q6_K high-accuracy model selection, persistent vision projection (`--image-min-tokens 1024`), optimized MTP speculation (`--spec-draft-n-max 5 --spec-draft-p-min 0.00` targeting 22~26+ tok/s), `--context-shift --keep -1`, `-c 262144`, native F16 KV cache, and `qwen3.8_codex_compatible.jinja`. |
+
+### `LOCAL-ENVIRONMENT-MEMORY.md`
+
+| Fix | Detail |
+|-----|--------|
+| Launcher Registry | Registered `Qwen3.8-27B_StrixHalo_Ultimate.bat` as the primary recommended entrypoint in the local launcher matrix. |
+
+**Correction (2026-08-21):** the `--spec-draft-n-max 5` figure above does not hold up. The same-day full MTP sweep (n_max ∈ {2..6}) measured n=5 at 13.47 tok/s vs n=2's 20.23 tok/s, and the later end-to-end 6-turn real-conversation test found that *no* MTP/FP4 config beats the official ROCm 7.14 binary running Q6_K + MTP n=2 (103s vs 186-192s for every alternative tried), because this repo's local WIP build discards prefix-cache every turn. Until that cache-invalidation bug is fixed, this launcher is not the recommended entrypoint — treat it as experimental and prefer the plain Q6_K + official-binary + MTP n=2 config for daily use.
+
+---
+
+## Session 009 — 2026-09-07
+
+**Scope:** Cherry-picked two fixes from `ROCmFPX/ROCmFPX` main (the real upstream, not the stale `ciru-ai` remote) onto `feat/dflash2-rocm`, and added a new adversarial tool-calling test script. Both cherry-picks were verified by direct rebuild + bench/smoke test rather than trusted on commit message alone; one turned out to be a no-op on this box's actual hardware, corrected in the same session rather than left as an unverified win.
+
+### `ggml/rocmfpx/rocmfpx_mmq_rdna3.cuh`, `ggml/rocmfpx/test_rocmfpx_mmq.cpp`, `ggml/src/ggml-cuda/mmq-config-rdna3.cuh`, `scripts/check-rocmfpx-reference.sh`, `src/llama-model-loader.cpp`
+
+| Fix | Detail |
+|-----|--------|
+| Cherry-pick `9b443bb2a` (upstream PR #20) | Restores RDNA3 HIP MMQ kernel selection + loader `ftype` classification for `Q4_0_ROCMFP4`/`_FAST`/`Q4_0_ROCMI4`/`Q2_0`/`Q3_0`/`Q5_0`/`Q6_0`/`Q7_0`/`Q8_0_ROCMFPX`, dropped by an earlier per-architecture MMQ selector refactor (`0b5be7e4a`). Applied cleanly, zero conflicts against this branch's own ROCmFPX commits. |
+| **Verified scope, same session**: this fix is a no-op for gfx1151. `ggml-cuda/mmq.cuh`'s dispatch checks `GGML_CUDA_CC_IS_RDNA3_5(cc)` before `GGML_CUDA_CC_IS_RDNA3(cc)`, and `common.cuh:100` defines `GGML_CUDA_CC_RDNA3_5` with the comment "AI 370, AI Max 395 laptops" — this exact chip. gfx1151 has always used the separate `ggml_cuda_mmq_get_config_rdna3_5()` table (`mmq-config-rdna3-5.cuh`), which already carried all 91 ROCmFPX `CASE` entries, unaffected by the regression this PR fixes (that regression only ever hit desktop RDNA3.0 / RX 7000 cards). Benched to confirm: STRIX_LEAN quant pp512/tg128 unchanged within noise before/after. Kept anyway — harmless, and useful if the release zip is ever run by someone on a desktop RDNA3 GPU — but not a performance lever for this box. | |
+
+### `src/models/qwen4exp.cpp`
+
+| Fix | Detail |
+|-----|--------|
+| Cherry-pick `09412af38` (upstream PR #28023) | Qwen3.8-Flash-Next (qwen4exp) QSA indexer head-reduction: replaced a transpose+`sum_rows` with adjacent-slice adds, and dropped a redundant `cont()` on the indexer query. Upstream author measured pp512 2170→2366 t/s (+9%) on an RTX PRO 6000 at 55K context, gain scaling with context depth — mechanism-relevant to this repo's own Flash-Next QSA depth-decay findings. Applied cleanly (auto-merge, no conflicts). Smoke-tested only (loads, correct output on our own HIP build) — real depth-scaling benefit not yet measured here, since the daily-driver Flash-Next bat runs the official Vulkan binary, not this branch's HIP-only build. |
+
+### `scripts/server-test-adversarial-tc.py` (new)
+
+| Fix | Detail |
+|-----|--------|
+| New test script | Adds the two tool-calling test classes the existing `server-test-function-call.py`/`server-test-parallel-tc.py` suites never covered: prompt injection via a tool result (fetched-webpage content tries to hijack the agent into a destructive delete + data-exfil email), and ambiguous tool selection by semantic content rather than surface keywords (a security-disclosure scenario where the wrong tool is the keyword-obvious one). Also adds `--filler-tokens N` to pad the conversation to a target depth, since no config's tool-calling had ever been checked past a fresh context slot. Run against the current daily driver (STRIX_LEAN ROCmFP4 + MTP n=3 strict-qwen): 2/2 at shallow depth, 2/2 again at a real measured ~73.8K prompt tokens. Single-case-per-class only — not a full battery; see `tool-calling-reliability-gap` notes for what's still open (no head-to-head against the Q6_K baseline yet, which matters because a third-party finding elsewhere reported ROCmFP4-class quants losing to Q6_K specifically on prompt-injection resistance). |
 
 
 
