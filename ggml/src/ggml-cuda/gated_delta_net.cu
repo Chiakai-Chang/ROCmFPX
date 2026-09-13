@@ -382,7 +382,7 @@ static void launch_gated_delta_net(
 
     if constexpr (!KDA) {
         const int cc = ggml_cuda_info().devices[ggml_cuda_get_device()].cc;
-        if (GGML_CUDA_CC_IS_RDNA3_5(cc) && S_v == 128 && H == 48 && n_seqs == 1 && n_tokens >= 16 && n_tokens <= 32768) {
+        if (!ggml_cuda_fork_paths_disabled() && GGML_CUDA_CC_IS_RDNA3_5(cc) && S_v == 128 && H == 48 && n_seqs == 1 && n_tokens >= 16 && n_tokens <= 32768) {
             const dim3 tiled_grid(H, n_seqs, 2);
             const dim3 tiled_block(warp_size, 8, 1);
             const ggml_cuda_kernel_launch_params tiled_params(tiled_grid, tiled_block, 0, stream);

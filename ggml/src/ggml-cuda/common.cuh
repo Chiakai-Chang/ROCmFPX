@@ -419,6 +419,13 @@ static constexpr __device__ int ggml_cuda_get_max_cpy_bytes() {
 #endif // __CUDA_ARCH__ >= GGML_CUDA_CC_VOLTA
 #endif // GGML_USE_HIP
 }
+// opt-out for the Strix-Halo-specific fast paths: they are tuned against a custom
+// ROCr/HIP runtime and can be slower than the generic kernels without it
+static bool ggml_cuda_fork_paths_disabled() {
+    static const bool v = getenv("STRIX_NO_FORK_PATHS") && atoi(getenv("STRIX_NO_FORK_PATHS")) != 0;
+    return v;
+}
+
 
 
 [[noreturn]]

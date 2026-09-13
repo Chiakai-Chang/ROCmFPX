@@ -1577,6 +1577,7 @@ struct mmq_args {
 
 static uint64_t fork_compact_calls[129] = {};
 static bool fork_compact_supported(const mmq_args & a, bool fallback, int cc) {
+    if (ggml_cuda_fork_paths_disabled()) { return false; }
     return a.type_x == GGML_TYPE_IQ4_NL && GGML_CUDA_CC_IS_RDNA3_5(cc) && !fallback &&
         a.ids_dst != nullptr && a.expert_bounds != nullptr && a.nchannels_x == 512 && a.nchannels_y == 512 &&
         a.nsamples_x == 1 && a.nsamples_y == 1 && a.ncols_max >= 16 && a.ncols_max <= 32768 &&

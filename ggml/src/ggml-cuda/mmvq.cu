@@ -1378,7 +1378,7 @@ static void mul_mat_vec_q_moe_launch_rpb(
 
     if constexpr (type == GGML_TYPE_IQ4_NL) {
         const int cc = ggml_cuda_info().devices[ggml_cuda_get_device()].cc;
-        if (!has_fusion && GGML_CUDA_CC_IS_RDNA3_5(cc) && ncols_dst <= 4 && nrows_x >= 512 && nrows_x % 4 == 0) {
+        if (!ggml_cuda_fork_paths_disabled() && !has_fusion && GGML_CUDA_CC_IS_RDNA3_5(cc) && ncols_dst <= 4 && nrows_x >= 512 && nrows_x % 4 == 0) {
             launch(std::integral_constant<int, 4>{});
             return;
         }

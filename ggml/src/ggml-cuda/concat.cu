@@ -194,7 +194,7 @@ static __global__ void __launch_bounds__(CUDA_CONCAT_BLOCK_SIZE)
 
 template <typename T>
 static void concat_cuda(const ggml_tensor * src0, const ggml_tensor * src1, ggml_tensor * dst, int dim, cudaStream_t stream) {
-    if (dst->type == GGML_TYPE_F32 && GGML_CUDA_CC_IS_RDNA3_5(ggml_cuda_info().devices[ggml_cuda_get_device()].cc) && dim == 0 && src1->ne[0] >= 32 && src0->ne[3] == 1 && src1->ne[3] == 1 && dst->ne[3] == 1 &&
+    if (!ggml_cuda_fork_paths_disabled() && dst->type == GGML_TYPE_F32 && GGML_CUDA_CC_IS_RDNA3_5(ggml_cuda_info().devices[ggml_cuda_get_device()].cc) && dim == 0 && src1->ne[0] >= 32 && src0->ne[3] == 1 && src1->ne[3] == 1 && dst->ne[3] == 1 &&
             src0->nb[0] == sizeof(T) && src0->nb[1] == src0->ne[0] * sizeof(T) &&
             src1->nb[1] == sizeof(T) && src1->nb[0] == src1->ne[1] * sizeof(T) &&
             dst->nb[0] == sizeof(T) && dst->nb[1] == dst->ne[0] * sizeof(T) &&

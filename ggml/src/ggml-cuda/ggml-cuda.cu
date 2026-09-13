@@ -3274,6 +3274,7 @@ static bool ggml_cuda_match_moe_weighted_reduction(
         const ggml_cgraph * cgraph,
         int node_idx,
         ggml_cuda_moe_weighted_reduction_match & match) {
+    if (ggml_cuda_fork_paths_disabled()) { return false; }
     const ggml_tensor * first = cgraph->nodes[node_idx];
     if (first->op != GGML_OP_MUL || first->type != GGML_TYPE_F32 || !ggml_is_contiguous(first)) {
         return false;
