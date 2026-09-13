@@ -12,24 +12,131 @@
 #include <utility>
 #include <vector>
 
-#ifndef _WIN32
+#ifdef _WIN32
+// windows.h defines min/max macros that break std::max and numeric_limits::max
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#else
 #include <fcntl.h>
 #include <unistd.h>
 #endif
 
 struct llama_lazy_reader {
 #ifdef _WIN32
-    // pread()/open() are unavailable on Windows; --lazy-mode on-direct falls
-    // back to the lazy mmap reads there (see llama_model_base::load_lazy_reader)
-    const int64_t head_dim = 0;
-
-    void gather(const int32_t *, int64_t, float *) const {
-        GGML_ABORT("lazy direct reads are not supported on this platform");
+    // Windows has no pread(). ReadFile() with an explicit OVERLAPPED offset reads
+    // positionally, but a synchronous handle still serializes concurrent calls, so
+    // each worker gets a handle of its own.
+    llama_lazy_reader(std::vector<HANDLE> handles, size_t base, size_t row_size, int64_t n_rows,
+                      int n_threads, enum ggml_type type, int64_t head_dim)
+        : handles(std::move(handles)), base(base), row_size(row_size), n_rows(n_rows),
+          n_threads(n_threads), head_dim(head_dim),
+          to_float(type == GGML_TYPE_F32 ? nullptr : ggml_get_type_traits(type)->to_float) {
+        GGML_ASSERT((type == GGML_TYPE_F32 || to_float != nullptr) && head_dim > 0);
+        GGML_ASSERT(!this->handles.empty());
     }
 
-    // load_lazy_reader() never constructs this reader on this platform, so this is never called;
-    // stubbed as a no-op (not GGML_ABORT like gather() above) since it is purely an advisory hint.
+    llama_lazy_reader(const llama_lazy_reader &) = delete;
+    llama_lazy_reader & operator=(const llama_lazy_reader &) = delete;
+
+    ~llama_lazy_reader() {
+        for (HANDLE h : handles) {
+            if (h != INVALID_HANDLE_VALUE) {
+                ::CloseHandle(h);
+            }
+        }
+    }
+
+    std::vector<HANDLE> handles;  // one per worker
+    const size_t   base;          // file offset of row 0
+    const size_t   row_size;      // bytes per quantized row
+    const int64_t  n_rows;
+    const int      n_threads;     // in-flight read workers
+    const int64_t  head_dim;
+    ggml_to_float_t to_float;     // same dequantizer the ggml_get_rows CPU kernel uses
+
+    void gather(const int32_t * rows, int64_t n, float * dst) const {
+        std::vector<std::pair<int32_t, int32_t>> pairs;
+        pairs.reserve(n);
+        for (int64_t i = 0; i < n; ++i) {
+            GGML_ASSERT(rows[i] >= 0 && (int64_t) rows[i] < n_rows);
+            pairs.emplace_back(rows[i], (int32_t) i);
+        }
+
+        std::sort(pairs.begin(), pairs.end()); // equal rows adjacent, file order
+
+        const int n_workers = (int) std::min<int64_t>((int64_t) handles.size(),
+                std::max<int64_t>(1, n / 32));
+
+        auto run_chunk = [&](int w, std::exception_ptr & err) {
+            try {
+                run_range(w, pairs, n * w / n_workers, n * (w + 1) / n_workers, dst);
+            } catch (...) {
+                err = std::current_exception();
+            }
+        };
+
+        std::vector<std::exception_ptr> errs(n_workers);
+        std::vector<std::thread> workers;
+        try {
+            for (int w = 1; w < n_workers; ++w) {
+                workers.emplace_back([&run_chunk, &errs, w]() { run_chunk(w, errs[w]); });
+            }
+        } catch (...) {
+            for (auto & t : workers) { t.join(); }
+            throw;
+        }
+
+        run_chunk(0, errs[0]);
+        for (auto & t : workers) { t.join(); }
+
+        for (const auto & err : errs) {
+            if (err) { std::rethrow_exception(err); }
+        }
+    }
+
+    // Windows exposes no per-range readahead hint and the handles are already
+    // opened FILE_FLAG_RANDOM_ACCESS, so the hint is a no-op here.
     void prefetch(const int32_t *, int64_t) const {}
+
+private:
+    void run_range(int worker, const std::vector<std::pair<int32_t, int32_t>> & pairs,
+                   int64_t begin, int64_t end, float * dst) const {
+        const HANDLE h = handles[(size_t) worker % handles.size()];
+        std::vector<uint8_t> bounce(row_size);
+        for (int64_t i = begin; i < end; ) {
+            int64_t j = i;
+            while (j + 1 < end && pairs[j + 1].first == pairs[i].first) {
+                ++j;
+            }
+            const size_t off = base + (size_t) pairs[i].first * row_size;
+            for (size_t done = 0; done < row_size; ) {
+                OVERLAPPED ov = {};
+                ov.Offset     = (DWORD) ((off + done) & 0xFFFFFFFFull);
+                ov.OffsetHigh = (DWORD) ((off + done) >> 32);
+                DWORD n_read = 0;
+                if (!::ReadFile(h, bounce.data() + done, (DWORD) (row_size - done), &n_read, &ov) || n_read == 0) {
+                    throw std::runtime_error(format("lazy direct read of %zu bytes at file offset %zu failed: %lu",
+                            row_size, off, (unsigned long) ::GetLastError()));
+                }
+                done += n_read;
+            }
+            float * first = dst + (size_t) pairs[i].second * head_dim;
+            if (to_float) {
+                to_float(bounce.data(), first, head_dim);
+            } else {
+                memcpy(first, bounce.data(), (size_t) head_dim * sizeof(float));
+            }
+            for (int64_t k = i + 1; k <= j; ++k) {
+                memcpy(dst + (size_t) pairs[k].second * head_dim, first, (size_t) head_dim * sizeof(float));
+            }
+            i = j + 1;
+        }
+    }
 #else
     llama_lazy_reader(int fd, size_t base, size_t row_size, int64_t n_rows, int n_threads,
                       enum ggml_type type, int64_t head_dim)

@@ -1892,11 +1892,56 @@ const llama_lazy_reader * llama_model_base::load_lazy_reader(llama_model_loader 
     return lazy_readers.at(tensor_name).get();
 }
 #else
-const llama_lazy_reader * llama_model_base::load_lazy_reader(llama_model_loader & ml, const char *, const ggml_tensor *) {
-    if (ml.lazy.mode == LLAMA_LAZY_MODE_DIRECT) {
-        LLAMA_LOG_WARN("%s: --lazy-mode on-direct is not supported on this platform, using lazy mmap reads\n", __func__);
+const llama_lazy_reader * llama_model_base::load_lazy_reader(llama_model_loader & ml, const char * tensor_name, const ggml_tensor * t) {
+    if (ml.lazy.mode != LLAMA_LAZY_MODE_DIRECT || !t) {
+        return nullptr;
     }
-    return nullptr;
+
+    if (const auto it = lazy_readers.find(tensor_name); it != lazy_readers.end()) {
+        return it->second.get();
+    }
+
+    const auto * w = ml.get_weight(tensor_name);
+    if (!w) {
+        // e.g. synthesised from metadata, no file rows to read
+        return nullptr;
+    }
+
+    // in-flight reads are IO queue depth, not compute; 2x cores worked well
+    // on NVMe and stays sane on smaller machines
+    int n_threads = 2 * (int) std::max(1u, std::thread::hardware_concurrency());
+    if (const char * e = getenv("LLAMA_LAZY_READ_THREADS")) {
+        const int v = atoi(e);
+        if (v > 0 && v <= 4096) { n_threads = v; }
+    }
+
+    // a handle per worker: ReadFile() takes a positioned OVERLAPPED offset, but a
+    // synchronous handle still serializes concurrent reads through one file pointer
+    const std::string & path = ml.files[w->idx]->name();
+    std::vector<HANDLE> handles;
+    handles.reserve(n_threads);
+    for (int i = 0; i < n_threads; ++i) {
+        const HANDLE h = ::CreateFileA(path.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
+                nullptr, OPEN_EXISTING, FILE_FLAG_RANDOM_ACCESS, nullptr);
+        if (h == INVALID_HANDLE_VALUE) {
+            break;
+        }
+        handles.push_back(h);
+    }
+    if (handles.empty()) {
+        LLAMA_LOG_WARN("%s: could not open %s for direct reads (error %lu), using lazy mmap reads\n",
+                __func__, path.c_str(), (unsigned long) ::GetLastError());
+        return nullptr;
+    }
+
+    auto reader = std::make_unique<llama_lazy_reader>(std::move(handles), w->offs,
+            ggml_row_size(t->type, t->ne[0]), t->ne[1], n_threads, t->type, t->ne[0]);
+
+    LLAMA_LOG_INFO("%s: direct reads enabled for %s: %" PRId64 " rows of %zu bytes at file offset %zu, %d handles\n",
+            __func__, tensor_name, reader->n_rows, reader->row_size, w->offs, (int) reader->handles.size());
+
+    lazy_readers[tensor_name] = std::move(reader);
+    return lazy_readers.at(tensor_name).get();
 }
 #endif
 
