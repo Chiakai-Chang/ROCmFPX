@@ -216,12 +216,22 @@ __device__ __forceinline__ void mmb_tile_gemm(const uint8_t * __restrict__ Wbase
     }
 }
 
-template <int BM, int BN, int WTM, int WTN, int WTYPE>
+template <int BM, int BN, int WTM, int WTN, int WTYPE, int GROUP_M = 0>
 __global__ void __launch_bounds__(MMB_NT, 2)
 mmb_dense_kernel(const uint8_t * __restrict__ W, const uint16_t * __restrict__ Xh, float * __restrict__ D, uint16_t * __restrict__ Dh, const bool store_f32, const int M, const int K, const int T) {
     __shared__ __align__(16) uint16_t As[BM * MMB_LDS_STRIDE];
     __shared__ __align__(16) uint16_t Bs[BN * MMB_LDS_STRIDE];
-    const int m0 = blockIdx.x * BM, t0 = blockIdx.y * BN;
+    int pm = blockIdx.x, pn = blockIdx.y;
+    // HipKittens grouped workgroups, without the CDNA chiplet mapping.
+    if constexpr (GROUP_M > 0) {
+        const int nm = (M + BM - 1) / BM, nn = (T + BN - 1) / BN;
+        const int id = blockIdx.x + blockIdx.y * nm;
+        const int per_group = GROUP_M * nn, first = (id / per_group) * GROUP_M;
+        const int size = nm - first < GROUP_M ? nm - first : GROUP_M;
+        pm = first + (id % per_group) % size;
+        pn = (id % per_group) / size;
+    }
+    const int m0 = pm * BM, t0 = pn * BN;
     const size_t wrow_bytes = mmb_row_bytes<WTYPE>(K);
     mmb_tile_gemm<BM, BN, WTM, WTN, WTYPE, false>(W + (size_t)m0 * wrow_bytes, wrow_bytes, M - m0, Xh, K,
         [&](int i) { return (t0 + i < T) ? t0 + i : -1; }, D, Dh, store_f32, M, [&](int i) { return (t0 + i < T) ? t0 + i : -1; }, m0, T - t0, As, Bs);
@@ -776,7 +786,13 @@ void ggml_cuda_mul_mat_mmb(ggml_backend_cuda_context & ctx, const ggml_tensor * 
         if (big) mmb_dense_kernel<128, 256, 64, 64, 0><<<grid, MMB_NT, 0, stream>>>(W, xhp, D, Dh, store_f32, M, K, T);
         else     mmb_dense_kernel<128, 128, 32, 64, 0><<<grid, MMB_NT, 0, stream>>>(W, xhp, D, Dh, store_f32, M, K, T);
     } else if (src0->type == GGML_TYPE_Q8_0) {
-        if (big) mmb_dense_kernel<128, 256, 64, 64, 1><<<grid, MMB_NT, 0, stream>>>(W, xhp, D, Dh, store_f32, M, K, T);
+        static const bool grouped = getenv("LLAMA_MMB_GROUPED") && atoi(getenv("LLAMA_MMB_GROUPED"));
+        if (grouped && K == 2560 && (M == 6144 || M == 10240 || M == 12288) && T >= 4096) {
+            mmb_dense_kernel<128, 256, 64, 64, 1, 16><<<grid, MMB_NT, 0, stream>>>(W, xhp, D, Dh, store_f32, M, K, T);
+            static unsigned hits = 0;
+            if (hits++ < 3) fprintf(stderr, "MMB_GROUPED Q8 group=16 M=%d K=%d T=%d\n", M, K, T);
+        }
+        else if (big) mmb_dense_kernel<128, 256, 64, 64, 1><<<grid, MMB_NT, 0, stream>>>(W, xhp, D, Dh, store_f32, M, K, T);
         else     mmb_dense_kernel<128, 128, 32, 64, 1><<<grid, MMB_NT, 0, stream>>>(W, xhp, D, Dh, store_f32, M, K, T);
     } else if (mmb_quant_type(src0->type)) {
         mmb_dispatch_quant(src0->type, [&](auto tag) {
