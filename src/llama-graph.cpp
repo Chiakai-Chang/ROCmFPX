@@ -2252,6 +2252,10 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
             GGML_ABORT("fatal error");
     }
 
+    if (down_exps->ne[0] > cur->ne[0]) {
+        // down weights zero-padded to a quant block multiple
+        cur = ggml_pad(ctx0, cur, down_exps->ne[0] - cur->ne[0], 0, 0, 0);
+    }
     experts = build_lora_mm_id(down_exps, cur, selected_experts, down_exps_s); // [n_embd, n_expert_used, n_tokens]
     cb(experts, "ffn_moe_down", il);
 

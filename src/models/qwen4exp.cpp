@@ -302,7 +302,15 @@ void llama_model_qwen4exp::load_arch_tensors(llama_model_loader & ml) {
         }
 
         layer.ffn_gate_inp  = create_tensor(tn(LLM_TENSOR_FFN_GATE_INP,  "weight", il), { n_embd, n_expert }, flags);
-        layer.ffn_down_exps = create_tensor(tn(LLM_TENSOR_FFN_DOWN_EXPS, "weight", il), { n_ff_exp, n_embd, n_expert }, flags);
+        // DS4 packs zero-pad the down input to a quant block multiple (640 -> 768 for Q2_K)
+        int64_t n_ff_down = n_ff_exp;
+        if (const auto * meta = ml.get_tensor_meta(tn(LLM_TENSOR_FFN_DOWN_EXPS, "weight", il).str().c_str())) {
+            const int64_t blck = ggml_blck_size(meta->type);
+            if (meta->ne[0] > n_ff_exp && n_ff_exp % blck != 0 && meta->ne[0] == GGML_PAD(n_ff_exp, blck)) {
+                n_ff_down = meta->ne[0];
+            }
+        }
+        layer.ffn_down_exps = create_tensor(tn(LLM_TENSOR_FFN_DOWN_EXPS, "weight", il), { n_ff_down, n_embd, n_expert }, flags);
         create_tensor_gate_up_exps(layer, il, n_embd, n_ff_exp, n_expert, flags);
 
         layer.ffn_gate_inp_shexp = create_tensor(tn(LLM_TENSOR_FFN_GATE_INP_SHEXP, "weight", il), { n_embd }, flags);
