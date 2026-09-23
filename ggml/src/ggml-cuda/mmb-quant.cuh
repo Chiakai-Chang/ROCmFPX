@@ -105,9 +105,21 @@ __device__ __forceinline__ void mmb_decode_slice(const void * row, const int k0,
         }
     }
     else if constexpr (TYPE == GGML_TYPE_Q2_K) {
-        const mmb_quant_slice out{dst, k0 % QK};
+        // decode only the 64-wide slice: each lane owns 4 byte positions and 2 of their 4 crumbs
+        const block_q2_K & b = ((const block_q2_K *) row)[k0 / QK];
+        const int s = k0 % QK, n = s / 128, m0 = (s % 128) / 32;
+        const float dall = __low2half(b.dm), dmin = __high2half(b.dm);
 #pragma unroll
-        for (int tid = lane; tid < 64; tid += 8) dequantize_q2_K<float>(row, k0 / QK, out, tid);
+        for (int l = lane * 4; l < lane * 4 + 4; ++l) {
+            const uint8_t q = b.qs[32 * n + l];
+            const int is = 8 * n + l / 16;
+#pragma unroll
+            for (int mm = 0; mm < 2; ++mm) {
+                const int m = m0 + mm;
+                const uint8_t sc = b.scales[is + 2 * m];
+                dst[l + 32 * mm] = mmb_f2bf(dall * (sc & 0xF) * ((q >> (2 * m)) & 3) - dmin * (sc >> 4));
+            }
+        }
     }
     else if constexpr (TYPE == GGML_TYPE_Q3_K) {
         const mmb_quant_slice out{dst, k0 % QK};
@@ -140,9 +152,18 @@ __device__ __forceinline__ void mmb_decode_slice(const void * row, const int k0,
         for (int tid = lane; tid < 32; tid += 8) dequantize_iq1_m<float>(row, k0 / QK, out, tid);
     }
     else if constexpr (TYPE == GGML_TYPE_IQ2_XXS) {
-        const mmb_quant_slice out{dst, k0 % QK};
+        // one 8-value grid entry per lane: the 8 lanes cover the 64-wide slice exactly
+        const block_iq2_xxs & b = ((const block_iq2_xxs *) row)[k0 / QK];
+        const int ib = (k0 % QK) / 32 + lane / 4, il = lane % 4;
+        const uint16_t * q2 = b.qs + 4 * ib;
+        const uint8_t * grid = (const uint8_t *)(iq2xxs_grid + ((const uint8_t *) q2)[il]);
+        const uint32_t aux32 = q2[2] | (q2[3] << 16);
+        const float d = (float) b.d * (0.5f + (aux32 >> 28)) * 0.25f;
+        const uint8_t signs = ksigns_iq2xs[(aux32 >> 7 * il) & 127];
 #pragma unroll
-        for (int tid = lane; tid < 32; tid += 8) dequantize_iq2_xxs<float>(row, k0 / QK, out, tid);
+        for (int j = 0; j < 8; ++j) {
+            dst[lane * 8 + j] = mmb_f2bf(d * grid[j] * (signs & kmask_iq2xs[j] ? -1.f : 1.f));
+        }
     }
     else if constexpr (TYPE == GGML_TYPE_IQ2_XS) {
         const mmb_quant_slice out{dst, k0 % QK};
