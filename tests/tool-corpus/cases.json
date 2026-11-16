@@ -1,0 +1,1268 @@
+[
+ {
+  "name": "rc/act-natural-stop",
+  "input": "The user asked what the file contains. Reading it first is the right step, and then I can summarize what is inside.\n\n<tool_call>\n<function=execute_code>\n<parameter=code>\nprint(1)\n</parameter>\n</function>\n</tool_call>",
+  "partial": false,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "code": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [
+   "execute_code"
+  ],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/act-first-text",
+  "input": "<tool_call>\n<function=execute_code>\n<parameter=code>\nprint(1)\n</parameter>\n</function>\n</tool_call>",
+  "partial": false,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "code": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [
+   "execute_code"
+  ],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/act-two-adjacent",
+  "input": "The comparison needs both files. I will read them one after the other.\n\n<tool_call>\n<function=execute_code>\n<parameter=code>\nprint(1)\n</parameter>\n</function>\n</tool_call>\n<tool_call>\n<function=execute_code>\n<parameter=code>\nprint(1)\n</parameter>\n</function>\n</tool_call>",
+  "partial": false,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "code": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [
+   "execute_code",
+   "execute_code"
+  ],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/envelope-undeclared",
+  "input": "The tool for this step is not in my visible list, so it goes through the wrapper with a single entry.\n\n<tool_call>\n<function=tool_call>\n<parameter=calls>\n[{\"name\": \"execute_code\", \"arguments\": {\"code\": \"print(1)\"}}]\n</parameter>\n</function>\n</tool_call>",
+  "partial": false,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "calls": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/envelope-declared",
+  "input": "The tool for this step is not in my visible list, so it goes through the wrapper with a single entry.\n\n<tool_call>\n<function=tool_call>\n<parameter=calls>\n[{\"name\": \"execute_code\", \"arguments\": {\"code\": \"print(1)\"}}]\n</parameter>\n</function>\n</tool_call>",
+  "partial": false,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "calls": {
+       "type": "string"
+      }
+     }
+    }
+   },
+   {
+    "name": "tool_call",
+    "description": "tool_call",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "calls": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [
+   "tool_call"
+  ],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/mention-backticks-midsentence",
+  "input": "Before answering, a note on the wire protocol: I must emit `<tool_call>` then `<function=execute_code>` - the format.\nWith that settled, the plan is clear.",
+  "partial": false,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {}
+    }
+   }
+  ],
+  "expect_calls": [],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/mention-midsentence-whole-call",
+  "input": "The format is <tool_call>\n<function=execute_code>\n</function>\n</tool_call> ok.\nI will follow it for the real call next.",
+  "partial": false,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {}
+    }
+   }
+  ],
+  "expect_calls": [],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/mention-backticks-line-start",
+  "input": "Plan:\n`<tool_call>\n<function=execute_code>` comes next.\nThat is the shape the harness wants.",
+  "partial": false,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {}
+    }
+   }
+  ],
+  "expect_calls": [],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/mention-line-start-no-function",
+  "input": "Next step:\n<tool_call> is the tag the format starts with.\nThe parameters follow it.",
+  "partial": false,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {}
+    }
+   }
+  ],
+  "expect_calls": [],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/mention-line-start-other-tag",
+  "input": "Example:\n<tool_call>\n<parameter=code>\nx\n</parameter>\nThe body would continue here.",
+  "partial": false,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "code": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/mention-indented",
+  "input": "As a list:\n  <tool_call>\n  <function=execute_code>\n  ...and so on for each field.\nThat covers the layout.",
+  "partial": false,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {}
+    }
+   }
+  ],
+  "expect_calls": [],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/mention-markdown-quote",
+  "input": "The doc says:\n> <tool_call>\n> <function=execute_code>\nand that is all it says about calling.",
+  "partial": false,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {}
+    }
+   }
+  ],
+  "expect_calls": [],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/mention-backtick-block",
+  "input": "Format:\n```xml\n<tool_call>\n<function=execute_code>\n<parameter=code>\nprint(1)\n</parameter>\n</function>\n</tool_call>\n```\nThat is how a call looks, for reference.",
+  "partial": false,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "code": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/mention-tilde-block",
+  "input": "Format:\n~~~\n<tool_call>\n<function=execute_code>\n<parameter=code>\nprint(1)\n</parameter>\n</function>\n</tool_call>\n~~~\nDone, that is the whole example.",
+  "partial": false,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "code": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/mention-tag-before-think-end",
+  "input": "So I call it:\n<tool_call>\n</think>Here is the answer to your question.",
+  "partial": false,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {}
+    }
+   }
+  ],
+  "expect_calls": [],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/mention-closed-span-fenced",
+  "input": "This is a documentation example, not an action:\n```xml\n<tool_call>\n<function=execute_code>\n<parameter=code>\nprint(1)\n</parameter>\n</function>\n</tool_call>\n```\nI should explain it without calling any tool.\n</think>Here is the explanation.",
+  "partial": false,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "code": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/mention-unclosed-disclaimed",
+  "input": "This is a documentation example, not an action:\n```xml\n<tool_call>\n<function=execute_code>\n<parameter=code>\nprint(1)\n</parameter>\n</function>\n</tool_call>\n```\nI should explain it without calling any tool.",
+  "partial": false,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "code": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/cut-max-tokens",
+  "input": "I could run\n<tool_call>\n<function=execute_code>\n<parameter=code>\nrm -rf build\n</parameter>\n</function>\n</tool_call>\nbut first let me check what build holds...",
+  "partial": true,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "code": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/mention-midsentence-declared",
+  "input": "I could run <tool_call>\n<function=execute_code>\n<parameter=code>\nprint(1)\n</parameter>\n</function>\n</tool_call>",
+  "partial": false,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "code": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/mention-trailing-prose",
+  "input": "The file is small, so one read is enough.\n<tool_call>\n<function=execute_code>\n<parameter=code>\nprint(1)\n</parameter>\n</function>\n</tool_call>\nlet me see what comes back.",
+  "partial": false,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "code": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/mention-prose-between-calls",
+  "input": "Both are needed.\n<tool_call>\n<function=execute_code>\n<parameter=code>\nprint(1)\n</parameter>\n</function>\n</tool_call> and also <tool_call>\n<function=execute_code>\n<parameter=code>\nprint(1)\n</parameter>\n</function>\n</tool_call>",
+  "partial": false,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "code": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/mention-empty-span",
+  "input": "Next:\n<tool_call>\n</tool_call>\nNothing further to add.",
+  "partial": false,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {}
+    }
+   }
+  ],
+  "expect_calls": [],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/known-miss-bare-function-opener",
+  "input": "Let me run it.\n<function=execute_code>\n<parameter=code>\nprint(1)\n</parameter>\n</function>",
+  "partial": false,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "code": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/normal-call-after-think-end",
+  "input": "I must emit `<tool_call>` then `<function=execute_code>` - the format.\n</think>\n\n<tool_call>\n<function=execute_code>\n<parameter=code>\nprint(1)\n</parameter>\n</function>\n</tool_call>",
+  "partial": false,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "code": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [
+   "execute_code"
+  ],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/mixed-declared-and-envelope",
+  "input": "Two things to do, so both calls go out together.\n\n<tool_call>\n<function=execute_code>\n<parameter=code>\nprint(1)\n</parameter>\n</function>\n</tool_call>\n<tool_call>\n<function=tool_call>\n<parameter=calls>\n[{\"name\": \"execute_code\", \"arguments\": {\"code\": \"print(1)\"}}]\n</parameter>\n</function>\n</tool_call>",
+  "partial": false,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "calls": {
+       "type": "string"
+      },
+      "code": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [
+   "execute_code"
+  ],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/live-01-declared",
+  "input": "I'm spotting an off-by-one error in my struct unpacking logic. The GGUF header structure is: magic (4 bytes), version (4 bytes), n_tensors (8 bytes),\n\n\n<tool_call>\n<function=terminal>\n<parameter=command>\ntimeout 60 ssh -o connecttimeout=10 <host> 'python3 - <<PY\nimport struct\np=\"<private-path> …\n</parameter>\n</function>\n</tool_call>",
+  "partial": false,
+  "tools": [
+   {
+    "name": "terminal",
+    "description": "terminal",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "command": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [
+   "terminal"
+  ],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/live-02-declared",
+  "input": "I should check the <tool> project note to see what's already been completed and what's still open, then look at the current live state to understand w\n\n\n<tool_call>\n<function=read_file>\n<parameter=path>\nC:\\Users\\Ai\\Documents\\<private-path>\n</parameter>\n<parameter=limit>\n120\n</parameter>\n</function>\n</tool_call>",
+  "partial": true,
+  "tools": [
+   {
+    "name": "read_file",
+    "description": "read_file",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "limit": {
+       "type": "string"
+      },
+      "path": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/live-03-envelope",
+  "input": "<tool>'a güncelemeyi yapmalıyım ve skill'e de patch atmalıyım. <tool>'a eklenmesi gereken önemli bilgi var — bu bir ders değil, ama bir ilerleme kaydı\n\n\n<tool_call>\n<function=tool_call>\n<parameter=calls>\n[{\"arguments\": {\"note_name\": \"Projeler/<project>\n</parameter>\n</function>\n</tool_call>",
+  "partial": false,
+  "tools": [
+   {
+    "name": "terminal",
+    "description": "terminal",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "calls": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/live-04-declared",
+  "input": "Looking at the Hermes vision setup, the main model needs to support vision inputs directly—images pasted into the CLI get sent as multimodal input. Th\n\n\n<tool_call>\n<function=terminal>\n<parameter=command>\nssh -o ConnectTimeout=8 <host> 'cd <private-path>\n</parameter>\n</function>\n</tool_call>\n<tool_call>\n<function=web_extract>\n<parameter=char_limit>\n8000\n</parameter>\n<parameter=urls>\n[\"https://hermes-agent.nousresearch.com/docs/user-guide/features/vision\"]\n</parameter>\n</function>\n</tool_call>",
+  "partial": false,
+  "tools": [
+   {
+    "name": "terminal",
+    "description": "terminal",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "char_limit": {
+       "type": "string"
+      },
+      "command": {
+       "type": "string"
+      },
+      "urls": {
+       "type": "string"
+      }
+     }
+    }
+   },
+   {
+    "name": "web_extract",
+    "description": "web_extract",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "char_limit": {
+       "type": "string"
+      },
+      "command": {
+       "type": "string"
+      },
+      "urls": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [
+   "terminal",
+   "web_extract"
+  ],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/live-05-declared",
+  "input": "Strata şu anda IQ3_XXS modelini port 8080'de serving ediyor ve görsel modaliteleri destekliyor. GPU PC'deki Hermes kurulumu `<private-path>\n\n\n<tool_call>\n<function=terminal>\n<parameter=command>\n/c/Windows/System32/OpenSSH/ssh.exe -o BatchMode=yes <host> 'echo \"=== hermes version ===\" …\n</parameter>\n</function>\n</tool_call>",
+  "partial": false,
+  "tools": [
+   {
+    "name": "terminal",
+    "description": "terminal",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "command": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [
+   "terminal"
+  ],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/live-06-envelope",
+  "input": "Tamam, bitti. Şimdi son bir kontroller:\n\n\n<tool_call>\n<function=todo_list>\n<parameter=todos>\n[{\"content\": \"Tum profillerdeki skill dizinlerini keşfet\", \"id\": \"1\", \"status\": \"completed …\n</parameter>\n</function>\n</tool_call>\n<tool_call>\n<function=tool_call>\n<parameter=calls>\n[{\"name\": \"mcp__obsidian_vault__mcp_obsidian_create_note\", \"arguments\": {\"path\": \"AI Stack …\n</parameter>\n</function>\n</tool_call>",
+  "partial": false,
+  "tools": [
+   {
+    "name": "todo_list",
+    "description": "todo_list",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "calls": {
+       "type": "string"
+      },
+      "todos": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [
+   "todo_list"
+  ],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/live-07-declared",
+  "input": "Index.md'yi kontrol edip güncellemem gerekiyor, sonra skill'i yamamam, backup dosyasını silmem, commit ve push işlemini yapmam, codegraph sync ve grap\n\n\n<tool_call>\n<function=search_files>\n<parameter=context>\n2\n</parameter>\n<parameter=output_mode>\ncontent\n</parameter>\n<parameter=path>\nC:\\Users\\Ai\\Documents\\<private-path>\n</parameter>\n<parameter=pattern>\nemulat|Emulat|borç|kopya\n</parameter>\n</function>\n</tool_call>",
+  "partial": false,
+  "tools": [
+   {
+    "name": "search_files",
+    "description": "search_files",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "context": {
+       "type": "string"
+      },
+      "output_mode": {
+       "type": "string"
+      },
+      "path": {
+       "type": "string"
+      },
+      "pattern": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [
+   "search_files"
+  ],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/live-08-declared",
+  "input": "Now the full picture is in place. Let me audit the claims in the environment hint one by one:\n\n\n<tool_call>\n<function=terminal>\n<parameter=command>\ndate \"+%Y-%m-%d %A %Z %z\"; echo ---; sed -n '60,64p' \"/c/Users/Ai/AppData/Local/hermes/con …\n</parameter>\n</function>\n</tool_call>",
+  "partial": false,
+  "tools": [
+   {
+    "name": "terminal",
+    "description": "terminal",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "command": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [
+   "terminal"
+  ],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/live-09-declared",
+  "input": "Önemli bir çelişkiyi fark ettim. Kullanıcının yerel makinesi Windows ve şu anda <host> adresinde. 21 Ağustos tarihli bir kayıt eski IP'lerin artık geç\n\n\n<tool_call>\n<function=execute_code>\n<parameter=code>\nimport re\ndef show(pat, label, maxn=30):\n    hits=[r for r in recs if re.search(pat, r.get …\n</parameter>\n</function>\n</tool_call>",
+  "partial": false,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "code": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [
+   "execute_code"
+  ],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/live-10-declared",
+  "input": "I'm noticing the plugin already handles max_tokens in mem0.json, so I should check how LlmConfig is set up around lines 360-380 and look for any max_t\n\n\n<tool_call>\n<function=terminal>\n<parameter=command>\nsed -n 300,470p \"C:/Users/Ai/AppData/Local/hermes/plugins/mem0-local/__init__.py\"\n</parameter>\n</function>\n</tool_call>",
+  "partial": false,
+  "tools": [
+   {
+    "name": "terminal",
+    "description": "terminal",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "command": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [
+   "terminal"
+  ],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/live-11-declared",
+  "input": "So the root cause is becoming clear: mem0 sends a chat completion request with `response_format` set to JSON object and `max_tokens` capped at 2000 by\n\n\n<tool_call>\n<function=terminal>\n<parameter=command>\ngrep -n \"_get_supported_params\" -A 40 \"C:/Users/Ai/AppData/Local/hermes/installs/d54dbf11f …\n</parameter>\n</function>\n</tool_call>\n<tool_call>\n<function=terminal>\n<parameter=command>\nssh -o ConnectTimeout=8 <host> \"cat <private-path>\n</parameter>\n</function>\n</tool_call>",
+  "partial": false,
+  "tools": [
+   {
+    "name": "terminal",
+    "description": "terminal",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "command": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [
+   "terminal",
+   "terminal"
+  ],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "rc/live-12-declared",
+  "input": "I need to check the DETAILS.md file to understand what llama.cpp actually supports for the qwen4exp architecture—specifically MoE expert offloading wi\n\n\n<tool_call>\n<function=web_extract>\n<parameter=char_limit>\n25000\n</parameter>\n<parameter=urls>\n[\"https://raw.githubusercontent.com/Niko1221/Strata/main/DETAILS.md\", \"https://raw.githubu …\n</parameter>\n</function>\n</tool_call>",
+  "partial": false,
+  "tools": [
+   {
+    "name": "web_extract",
+    "description": "web_extract",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "char_limit": {
+       "type": "string"
+      },
+      "urls": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [
+   "web_extract"
+  ],
+  "source": "strata rcall_specimens"
+ },
+ {
+  "name": "gold/text only",
+  "input": "Hello there.\nNothing to call.",
+  "partial": false,
+  "tools": [
+   {
+    "name": "get_weather",
+    "description": "get_weather",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "city": {
+       "type": "string"
+      },
+      "days": {
+       "type": "integer"
+      }
+     }
+    }
+   },
+   {
+    "name": "write_file",
+    "description": "write_file",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "path": {
+       "type": "string"
+      },
+      "content": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [],
+  "expect_args": [],
+  "source": "strata tool_parser_golden"
+ },
+ {
+  "name": "gold/one call",
+  "input": "<tool_call>\n<function=get_weather>\n<parameter=city>\nParis\n</parameter>\n<parameter=days>\n3\n</parameter>\n</function>\n</tool_call>",
+  "partial": false,
+  "tools": [
+   {
+    "name": "get_weather",
+    "description": "get_weather",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "city": {
+       "type": "string"
+      },
+      "days": {
+       "type": "integer"
+      }
+     }
+    }
+   },
+   {
+    "name": "write_file",
+    "description": "write_file",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "path": {
+       "type": "string"
+      },
+      "content": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [
+   "get_weather"
+  ],
+  "expect_args": [
+   {
+    "city": "Paris",
+    "days": 3
+   }
+  ],
+  "source": "strata tool_parser_golden"
+ },
+ {
+  "name": "gold/text then call",
+  "input": "Let me check.\n\n<tool_call>\n<function=get_weather>\n<parameter=city>\nRome\n</parameter>\n</function>\n</tool_call>",
+  "partial": false,
+  "tools": [
+   {
+    "name": "get_weather",
+    "description": "get_weather",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "city": {
+       "type": "string"
+      },
+      "days": {
+       "type": "integer"
+      }
+     }
+    }
+   },
+   {
+    "name": "write_file",
+    "description": "write_file",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "path": {
+       "type": "string"
+      },
+      "content": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [
+   "get_weather"
+  ],
+  "expect_args": [
+   {
+    "city": "Rome"
+   }
+  ],
+  "source": "strata tool_parser_golden"
+ },
+ {
+  "name": "gold/two calls",
+  "input": "<tool_call>\n<function=get_weather>\n<parameter=city>\nA\n</parameter>\n</function>\n</tool_call>\n<tool_call>\n<function=write_file>\n<parameter=path>\nx.txt\n</parameter>\n<parameter=content>\nline1\nline2\n</parameter>\n</function>\n</tool_call>",
+  "partial": false,
+  "tools": [
+   {
+    "name": "get_weather",
+    "description": "get_weather",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "city": {
+       "type": "string"
+      },
+      "days": {
+       "type": "integer"
+      }
+     }
+    }
+   },
+   {
+    "name": "write_file",
+    "description": "write_file",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "path": {
+       "type": "string"
+      },
+      "content": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [
+   "get_weather",
+   "write_file"
+  ],
+  "expect_args": [
+   {
+    "city": "A"
+   },
+   {
+    "path": "x.txt",
+    "content": "line1\nline2"
+   }
+  ],
+  "source": "strata tool_parser_golden"
+ },
+ {
+  "name": "gold/thinking then call",
+  "input": "I should look it up.</think>\n\n<tool_call>\n<function=get_weather>\n<parameter=city>\nOslo\n</parameter>\n</function>\n</tool_call>",
+  "partial": false,
+  "tools": [
+   {
+    "name": "get_weather",
+    "description": "get_weather",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "city": {
+       "type": "string"
+      },
+      "days": {
+       "type": "integer"
+      }
+     }
+    }
+   },
+   {
+    "name": "write_file",
+    "description": "write_file",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "path": {
+       "type": "string"
+      },
+      "content": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [
+   "get_weather"
+  ],
+  "expect_args": [
+   {
+    "city": "Oslo"
+   }
+  ],
+  "source": "strata tool_parser_golden"
+ },
+ {
+  "name": "gold/undeclared tool stays text",
+  "input": "<tool_call>\n<function=launch_missiles>\n<parameter=x>\n1\n</parameter>\n</function>\n</tool_call>",
+  "partial": false,
+  "tools": [
+   {
+    "name": "get_weather",
+    "description": "get_weather",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "city": {
+       "type": "string"
+      },
+      "days": {
+       "type": "integer"
+      }
+     }
+    }
+   },
+   {
+    "name": "write_file",
+    "description": "write_file",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "path": {
+       "type": "string"
+      },
+      "content": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [],
+  "expect_args": [],
+  "source": "strata tool_parser_golden"
+ },
+ {
+  "name": "reg/control-no-mention",
+  "input": "I will run the code now.\n</think>\n\n<tool_call>\n<function=execute_code>\n<parameter=code>\nprint(1)\n</parameter>\n</function>\n</tool_call>",
+  "partial": false,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "code": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [
+   "execute_code"
+  ],
+  "source": "regression: tag mention in reasoning before </think>"
+ },
+ {
+  "name": "reg/backtick-inline",
+  "input": "I must emit `<tool_call>` then go.\n</think>\n\n<tool_call>\n<function=execute_code>\n<parameter=code>\nprint(1)\n</parameter>\n</function>\n</tool_call>",
+  "partial": false,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "code": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [
+   "execute_code"
+  ],
+  "source": "regression: tag mention in reasoning before </think>"
+ },
+ {
+  "name": "reg/plain-word-mention",
+  "input": "I must emit <tool_call> then go.\n</think>\n\n<tool_call>\n<function=execute_code>\n<parameter=code>\nprint(1)\n</parameter>\n</function>\n</tool_call>",
+  "partial": false,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "code": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [
+   "execute_code"
+  ],
+  "source": "regression: tag mention in reasoning before </think>"
+ },
+ {
+  "name": "reg/line-start-mention",
+  "input": "Format is:\n<tool_call>\nthen go.\n</think>\n\n<tool_call>\n<function=execute_code>\n<parameter=code>\nprint(1)\n</parameter>\n</function>\n</tool_call>",
+  "partial": false,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "code": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [
+   "execute_code"
+  ],
+  "source": "regression: tag mention in reasoning before </think>"
+ },
+ {
+  "name": "reg/mention-no-think-end-text-after",
+  "input": "I must emit `<tool_call>` then go.\n</think>\n\nOk.",
+  "partial": false,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "code": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [],
+  "source": "regression: tag mention in reasoning before </think>"
+ },
+ {
+  "name": "reg/mention-func-tag",
+  "input": "I use `<function=execute_code>` here.\n</think>\n\n<tool_call>\n<function=execute_code>\n<parameter=code>\nprint(1)\n</parameter>\n</function>\n</tool_call>",
+  "partial": false,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "code": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [
+   "execute_code"
+  ],
+  "source": "regression: tag mention in reasoning before </think>"
+ },
+ {
+  "name": "reg/mention-think-tag",
+  "input": "Use `</think>` carefully.\n</think>\n\n<tool_call>\n<function=execute_code>\n<parameter=code>\nprint(1)\n</parameter>\n</function>\n</tool_call>",
+  "partial": false,
+  "tools": [
+   {
+    "name": "execute_code",
+    "description": "execute_code",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "code": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  ],
+  "expect_calls": [
+   "execute_code"
+  ],
+  "source": "regression: tag mention in reasoning before </think>"
+ }
+]

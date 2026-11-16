@@ -1234,9 +1234,12 @@ static common_chat_params common_chat_params_init_qwen3_coder(const common_chat_
 
         auto reasoning = p.eps();
         if (supports_reasoning && extract_reasoning) {
+            // A tool call in place of </think> ends the reasoning only when it opens like a call
+            // (<tool_call>, newline, <function=). A bare <tool_call> in the reasoning is a mention of the
+            // tag; ending the reasoning there loses the real call that follows </think>.
             reasoning = p.optional("<think>" + p.space() +
-                                   p.reasoning(p.until_one_of({ "</think>", "<tool_call>" })) +
-                                   (p.literal("</think>") | p.peek(p.literal("<tool_call>"))));
+                                   p.reasoning(p.until_one_of({ "</think>", "<tool_call>\n<function=" })) +
+                                   (p.literal("</think>") | p.peek(p.literal("<tool_call>\n<function="))));
         }
 
         // Response format parser
