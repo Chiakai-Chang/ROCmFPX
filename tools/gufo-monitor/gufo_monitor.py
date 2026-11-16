@@ -230,7 +230,11 @@ def render(state: State, url: str, ascii_only: bool, frozen: bool, snap: dict, w
         states.append(f"[{name}] " if name == mode else f" {name}  ", style=f"bold {style}" if name == mode else "dim")
     fresh = now - state.last_progress_at < 6
     if active and p and fresh:
-        states.append(f"   {int(p['tok']):,} / {int(p['total']):,} tokens  {float(p['pct']):.0f}%", style="bold")
+        if p["phase"] == "prefill":
+            label = f"prefill {int(p['tok']):,} / {int(p['total']):,} prompt tokens"
+        else:   # decode: total is the reply limit (-n), not the context
+            label = f"{int(p['tok']):,} generated (max {int(p['total']):,})"
+        states.append(f"   {label}  {float(p['pct']):.0f}%", style="bold")
         prog = bar(float(p["pct"]) / 100, full, ascii_only)
     else:
         prog = bar(0, full, ascii_only)
